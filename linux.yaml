@@ -1,0 +1,168 @@
+---
+- hosts: case1
+  gather_facts: no
+  tasks:
+  
+  - name: selinux_disable
+    selinux:
+      state: disabled
+    when: inventory_hostname == "web"
+
+  - name: nftables_conf
+    copy:
+      src: ./nftables.conf
+      dest: /etc/sysconfig/nftables.conf
+    when: inventory_hostname == "web"
+
+  - name: nat_copy
+    copy:
+      src: ./nat.nft
+      dest: /etc/nftables/nat.nft
+    when: inventory_hostname == "web"
+
+  - name: nat_reboot
+    service: 
+      name: nftables
+      enabled: yes
+      state: restarted
+    when: inventory_hostname == "web"
+
+  - name: sysctl
+    copy:
+      src: ./sysctl.conf
+      dest: /etc/sysctl.conf
+
+  - name: sysctl_launch
+    shell: sysctl -p
+
+  - name: install_chrony
+    dnf:
+      name: chrony
+      state: latest
+
+  - name: set_chrony
+    copy:
+      src: ./chrony.conf
+      dest: /etc/chrony.conf
+
+  - name: set_timezone
+    shell: timedatectl set-timezone Europe/Moscow
+
+  - name: reboot_chrony
+    service:
+      name: chronyd
+      enabled: yes
+      state: restarted
+
+  - name: delete_runc
+    package:
+      name: ['runc*']
+      state: absent
+      use: dnf
+    become: yes
+
+  - name: Install yum utils
+    yum:
+      name: yum-utils
+      state: latest
+    when: inventory_hostname == "app"
+
+  - name: Add Docker repo
+    get_url:
+      url: https://download.docker.com/linux/centos/docker-ce.repo
+      dest: /etc/yum.repos.d/docer-ce.repo
+    become: yes
+    when: inventory_hostname == "app"
+
+  - name: Install Docker
+    package:
+      name: docker-ce
+      state: latest
+    become: yes
+    when: inventory_hostname == "app"
+
+  - name: Start Docker service
+    service:
+      name: docker
+      state: started
+      enabled: yes
+    become: yes
+    when: inventory_hostname == "app"
+
+  - name: add_user_to_docker_group
+    user:
+      name: "{{ ansible_user }}"
+      group: docker
+    when: inventory_hostname == "app"
+
+  - name: download_docker-compose
+    get_url:
+      url : https://github.com/docker/compose/releases/download/1.27.4/docker-compose-Linux-x86_64
+      dest: ~/docker-compose
+      mode: '+x'
+    when: inventory_hostname == "app"
+
+  - name: move_docker-compose
+    command: mv ~/docker-compose /usr/local/bin/docker-compose
+    when: docker_compose.stat.exists
+    when: inventory_hostname == "app"
+
+  - name: move_yaml
+    copy:
+      src: ./docker-compose.yaml
+      dest: /root/docker-compose.yaml
+    when: inventory_hostname == "app"
+
+  - name: app_run
+    shell: docker-compose up -d --build
+    when: inventory_hostname == "app"
+
+  - name: Ensure_directory_exists
+    file:
+      path: /opt/ca
+      state: directory
+    when: inventory_hostname == "web"
+
+  - name: install_pyopenssl
+    yum:
+      name: python3-pyOpenSSL
+      state: latest
+    become: yes
+    when: inventory_hostname == "web"
+
+  - name: generate an openssl private key
+    openssl_privatekey:
+      path: /opt/ca/cakey.pem
+    when: inventory_hostname == "web"
+
+  - name: generate an openssl CSR
+    openssl_csr:
+      path: /opt/ca/ca.csr
+      privatekey_path: /opt/ca/cakey.pem
+      common_name: "site.unakbars.ru"
+    when: inventory_hostname == "web"
+
+  - name: generate a self signed openssl certificate
+    openssl_certificate:
+      path: /opt/ca/cacert.pem
+      privatekey_path: /opt/ca/cakey.pem
+      csr_path: /opt/ca/ca.csr
+      provider: selfsigned
+    when: inventory_hostname == "web"
+
+  - name: ensure_nginx_is_at_the_latest_version
+    dnf: name=nginx state=latest
+    when: inventory_hostname == "web"
+
+  - name: copy_nginx_conf
+    copy:
+      src: ./task.conf
+      dest: /etc/nginx/conf.d/task.conf
+    when: inventory_hostname == "web"
+
+  - name: start nginx
+    service:
+      name: nginx
+      enabled: yes
+      state: restarted
+    when: inventory_hostname == "web"

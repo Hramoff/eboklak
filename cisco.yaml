@@ -1,0 +1,168 @@
+---
+- hosts: case2
+  gather_facts: no
+  tasks:
+
+  - name: Set_ip_right
+    ios_config:
+     parents: "interface gi2"
+     lines:
+       - ip address 10.10.20.254 255.255.255.0
+       - no shut
+    when: inventory_hostname == "r-rtr"
+
+  - name: Set_ip_left
+    ios_config:
+     parents: "int gi2"
+     lines:
+       - ip address 10.10.10.254 255.255.255.0
+       - no sh
+    when: inventory_hostname == "l-rtr"
+
+  - name: set_dns
+    ios_config:
+     parents:
+     lines:
+       - ip name-server 200.100.100.254
+  
+  - name: nat_inside
+    ios_config:
+     parents: "int gi1"
+     lines:
+       - ip nat inside
+
+  - name: nat_outside
+    ios_config:
+     parents: "int gi2"
+     lines:
+       - ip nat outside
+
+  - name: access_list_nat_right
+    ios_config:
+     parents: "ip access-list standard NAT"
+     lines:
+       - permit 10.10.20.0 0.0.0.255
+    when: inventory_hostname == "r-rtr"
+
+  - name: access_list_nat_left
+    ios_config:
+     parents: "ip access-list standard NAT"
+     lines:
+       - permit 10.10.10.0 0.0.0.255
+    when: inventory_hostname == "l-rtr"
+
+  - name: nat_overload
+    ios_config:
+     lines:
+       - ip nat inside source list NAT int gi1 overload
+
+  - name: gre_left
+    ios_config:
+     parents: "int tun1"
+     lines:
+       - ip address 100.100.100.1 255.255.255.252
+       - tunnel source gi1
+       - tunnel destination r-rtr.unakbars.ru
+       - tunnel mode gre ip
+    when: inventory_hostname == "l-rtr"
+
+  - name: gre_right
+    ios_config:
+     parents: "int tun1"
+     lines:
+       - ip address 100.100.100.2 255.255.255.252
+       - tunnel source gi1
+       - tunnel destination l-rtr.unakbars.ru
+       - tunnel mode gre ip
+    when: inventory_hostname == "r-rtr"
+
+  - name: ipsec
+    ios_config:
+     parents: "crypto isakmp policy 1"
+     lines:
+       - encr aes
+       - hash sha256
+       - authentication pre-share
+       - group 14
+
+  - name: isakmp_key
+    ios_config:
+     lines:
+       - crypto isakmp key cisco address 0.0.0.0
+
+  - name: isakmp_transform_set
+    ios_config:
+     parents: "crypto ipsec transform-set TS esp-aes esp-md5-hmac"
+     lines:
+       - mode transport
+
+  - name: profile_vpn
+    ios_config:
+     parents: "crypto ipsec profile vpn"
+     lines:
+       - set transform-set TS
+
+  - name: tun1_vpn_protection
+    ios_config:
+     parents: "int tun1"
+     lines:
+       - tunnel protection ipsec profile vpn
+
+  - name: ospf_left
+    ios_config:
+     parents: "router ospf 1"
+     lines:
+       - network 10.10.10.0 0.0.0.255 area 51
+       - network 100.100.100.0 0.0.0.3 area 51
+    when: inventory_hostname == "l-rtr"
+
+  - name: ospf_right
+    ios_config:
+     parents: "router ospf 1"
+     lines:
+       - network 10.10.20.0 0.0.0.255 area 51
+       - network 100.100.100.0 0.0.0.3 area 51
+    when: inventory_hostname == "r-rtr"
+
+  - name: dhcp_pool_left
+    ios_config:
+     lines: 
+       - ip dhcp excluded-address 10.10.10.0 10.10.10.99
+       - ip dhcp excluded-address 10.10.10.151 10.10.10.255
+    when: inventory_hostname == "l-rtr"
+
+  - name: dhcp_pool_left
+    ios_config:
+     parents: "ip dhcp pool left"
+     lines:
+       - network 10.10.10.0 255.255.255.0
+       - default-router 10.10.10.254
+       - dns-server 200.100.100.254
+       - option 150 ip 200.100.100.254
+    when: inventory_hostname == "l-rtr"
+
+  - name: dhcp_range_right
+    ios_config:
+     lines: 
+       - ip dhcp excluded-address 10.10.20.0 10.10.20.99
+       - ip dhcp excluded-address 10.10.20.151 10.10.20.255
+    when: inventory_hostname == "r-rtr"
+
+  - name: dhcp_pool_right
+    ios_config:
+     parents: "ip dhcp pool right"
+     lines:
+       - network 10.10.20.0 255.255.255.0
+       - default-router 10.10.20.254
+       - dns-server 200.100.100.254
+       - option 150 ip 200.100.100.254
+    when: inventory_hostname == "r-rtr"
+  
+  - name: ntp_server
+    ios_config:
+     lines: 
+       - ntp server 200.100.100.254
+
+  - name: do_wr
+    ios_command:
+     commands: wr

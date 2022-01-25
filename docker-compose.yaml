@@ -1,0 +1,9 @@
+version: '3'
+services:
+  nginx:
+    image: vadimgarifullin/custom_nginx
+    container_name: app_nginx
+    hostname: APP
+    restart: always
+    ports:
+      - 80:80
