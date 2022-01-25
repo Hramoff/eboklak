@@ -16,7 +16,7 @@
      parents: "int gi2"
      lines:
        - ip address 10.10.10.254 255.255.255.0
-       - no sh
+       - no shut
     when: inventory_hostname == "l-rtr"
 
   - name: set_dns
