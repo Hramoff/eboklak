@@ -31,9 +31,11 @@
     copy:
       src: ./sysctl.conf
       dest: /etc/sysctl.conf
+    when: inventory_hostname == "web"
 
   - name: sysctl_launch
     shell: sysctl -p
+    when: inventory_hostname == "web"
 
   - name: install_chrony
     dnf:
