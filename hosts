@@ -1,0 +1,19 @@
+[case2]
+l-rtr ansible_host=l-rtr.unakbars.ru
+r-rtr ansible_host=r-rtr.unakbars.ru
+[case2:vars]
+ansible_user=cisco
+ansible_python_interpreter=/usr/bin/python3
+ansible_password=cisco
+ansible_network_os=ios
+ansible_connection=network_cli
+#ansible_connection=ssh
+ansible_gather_facts=no
+ansible_host_keyauto_add=yes
+[case1]
+web ansible_host=200.100.100.50
+app ansible_host=200.100.100.50 ansible_port=228
+[case1:vars]
+ansible_user=root
+ansible_password=toor
+ansible_python_interpreter=/usr/bin/python3
