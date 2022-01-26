@@ -54,12 +54,12 @@
       enabled: yes
       state: restarted
 
-  - name: delete_runc
-    package:
-      name: ['runc*']
-      state: absent
-      use: dnf
-    become: yes
+#  - name: delete_runc
+ #   package:
+  #    name: ['runc*']
+   #   state: absent
+    #  use: dnf
+    #become: yes
 
   - name: Install yum utils
     yum:
