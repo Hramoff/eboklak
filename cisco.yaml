@@ -27,13 +27,13 @@
   
   - name: nat_inside
     ios_config:
-     parents: "int gi1"
+     parents: "int gi2"
      lines:
        - ip nat inside
 
   - name: nat_outside
     ios_config:
-     parents: "int gi2"
+     parents: "int gi1"
      lines:
        - ip nat outside
 
