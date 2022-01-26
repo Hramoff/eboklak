@@ -124,7 +124,7 @@
        - network 100.100.100.0 0.0.0.3 area 51
     when: inventory_hostname == "r-rtr"
 
-  - name: dhcp_pool_left
+  - name: dhcp_range_left
     ios_config:
      lines: 
        - ip dhcp excluded-address 10.10.10.0 10.10.10.99
