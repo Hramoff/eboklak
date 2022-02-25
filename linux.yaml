@@ -3,10 +3,19 @@
   gather_facts: no
   tasks:
   
+  - name: firewalld_disable
+    service:
+      name: firewalld
+      state: stopped
+      enabled: False
+  
   - name: selinux_disable
     selinux:
       state: disabled
     when: inventory_hostname == "web"
+
+  - name: setenforce
+    shell: setenforce 0
 
   - name: nftables_conf
     copy:
