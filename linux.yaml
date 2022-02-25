@@ -8,6 +8,7 @@
       name: firewalld
       state: stopped
       enabled: False
+    when: inventory_hostname == "web"
   
   - name: selinux_disable
     selinux:
@@ -16,7 +17,8 @@
 
   - name: setenforce
     shell: setenforce 0
-
+    when: inventory_hostname == "web"
+    
   - name: nftables_conf
     copy:
       src: ./nftables.conf
